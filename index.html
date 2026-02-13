@@ -125,6 +125,25 @@
         #game1-controls {
             position: absolute;
             bottom: 20px;
+            z-index: 1001; 
+        }
+
+        #game1-victory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--bubble-base);
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+        }
+        #game1-victory.show {
+            transform: translate(-50%, -50%) scale(1);
         }
 
         /* 遊戲 2: 粒子 */
@@ -144,6 +163,8 @@
             pointer-events: none;
             user-select: none;
             text-shadow: 0 0 5px black;
+            text-align: center;
+            width: 100%;
         }
 
         /* 遊戲 3: 職場毀滅者 */
@@ -239,7 +260,6 @@
             position: relative;
             background: #222;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            /* 預設大小，會被 JS 覆蓋 */
             width: 300px;
             height: 300px; 
             display: grid;
@@ -274,7 +294,6 @@
         }
 
         .puzzle-piece.correct {
-            /* 勝利後的樣式 */
             border: none;
         }
 
@@ -295,6 +314,44 @@
         
         #victory-message.show {
             transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* 遊戲 5: 刮刮樂 */
+        #game5 {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #scratch-container {
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border: 5px solid #fff;
+            background-color: #222;
+            cursor: crosshair;
+        }
+
+        /* 這是底圖 */
+        #scratch-bg {
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* 這是上面的塗層 */
+        #scratch-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
         }
 
         /* 動畫 */
@@ -356,15 +413,27 @@
                 <h3>回憶拼圖</h3>
                 <div class="desc">上傳任意圖片，打散重組，獲得滿滿成就感。</div>
             </div>
+            <div class="game-card" onclick="startGame(5)">
+                <div class="icon">🧹</div>
+                <h3>透視刮刮樂</h3>
+                <div class="desc">將障礙物刮乾淨，露出底下隨機的圖片。</div>
+            </div>
         </div>
     </div>
 
     <!-- 遊戲 1: 泡泡紙 -->
-    <div id="game1" class="hidden" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <div id="game1" class="hidden" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
         <button class="back-btn" onclick="showMenu()">← 回主選單</button>
         <div id="game1-container">
             <!-- 泡泡會由 JS 生成 -->
         </div>
+        
+        <!-- 泡泡紙勝利訊息 -->
+        <div id="game1-victory">
+            <h2 style="color: #8ec5fc; font-size: 32px; margin: 0 0 10px 0;">✨ 舒壓完畢！ ✨</h2>
+            <p style="color: white; font-size: 18px;">所有泡泡都戳破囉</p>
+        </div>
+
         <div id="game1-controls">
             <button class="reset-btn" onclick="resetBubbles()">全部復原 (R)</button>
         </div>
@@ -415,11 +484,31 @@
                 <button class="reset-btn" onclick="useDefaultImage()" style="background-color: #0f3460;">重玩預設圖</button>
             </div>
         </div>
+    </div>
 
-        <div id="victory-message">
-            <h2 style="color: #ffd700; font-size: 40px; margin: 0;">🎉 VICTORY! 🎉</h2>
-            <p style="color: white; font-size: 20px;">太厲害了！拼圖完成！</p>
+    <!-- 遊戲 5: 刮刮樂 -->
+    <div id="game5" class="hidden">
+        <button class="back-btn" onclick="showMenu()">← 回主選單</button>
+        
+        <div id="game5-ui" style="text-align: center; margin-bottom: 20px;">
+            <p style="color: #ccc; margin-bottom: 10px;">按住滑鼠左鍵移動來刮除障礙物</p>
+            <p style="color: #666; font-size: 12px;">圖片來源：<b>reveal_images/1.jpg ~ 5.jpg</b></p>
         </div>
+
+        <div id="scratch-container">
+            <div id="scratch-bg"></div>
+            <canvas id="scratch-canvas"></canvas>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button class="reset-btn" onclick="initGame5()">換一張圖</button>
+        </div>
+    </div>
+
+    <!-- 共用的勝利訊息 -->
+    <div id="victory-message">
+        <h2 style="color: #ffd700; font-size: 40px; margin: 0;">🎉 VICTORY! 🎉</h2>
+        <p style="color: white; font-size: 20px;">太厲害了！完成挑戰！</p>
     </div>
 
     <script>
@@ -486,7 +575,7 @@
             }
         }
 
-        // 拼圖勝利音效 (大三和弦琶音)
+        // 勝利音效 (大三和弦琶音)
         function playWinSound() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const now = audioCtx.currentTime;
@@ -524,6 +613,8 @@
             document.getElementById('game2').classList.add('hidden');
             document.getElementById('game3').classList.add('hidden');
             document.getElementById('game4').classList.add('hidden');
+            document.getElementById('game5').classList.add('hidden');
+            document.getElementById('victory-message').classList.remove('show');
             
             if (game2LoopId) cancelAnimationFrame(game2LoopId);
             if (game3LoopId) clearInterval(game3LoopId);
@@ -547,37 +638,49 @@
             } else if (id === 4) {
                 document.getElementById('game4').classList.remove('hidden');
                 initGame4();
+            } else if (id === 5) {
+                document.getElementById('game5').classList.remove('hidden');
+                initGame5();
             }
         }
 
         // --- 遊戲 1: 泡泡紙 ---
         function initGame1() {
+            document.getElementById('game1-victory').classList.remove('show');
             const container = document.getElementById('game1-container');
             container.innerHTML = '';
             for (let i = 0; i < 120; i++) {
                 const b = document.createElement('div');
                 b.className = 'bubble';
-                
                 const popBubble = () => {
                     if (!b.classList.contains('popped')) {
                         b.classList.add('popped');
                         playPopSound();
                         if(navigator.vibrate) navigator.vibrate(15);
+                        checkBubbleWin();
                     }
                 };
-
                 b.addEventListener('mousedown', popBubble);
                 b.addEventListener('mouseenter', () => {
                     if (isMouseDown) popBubble();
                 });
-
                 container.appendChild(b);
+            }
+        }
+
+        function checkBubbleWin() {
+            const bubbles = document.querySelectorAll('.bubble');
+            const popped = document.querySelectorAll('.bubble.popped');
+            if (bubbles.length > 0 && bubbles.length === popped.length) {
+                document.getElementById('game1-victory').classList.add('show');
+                playWinSound();
             }
         }
 
         function resetBubbles() {
             const bubbles = document.querySelectorAll('.bubble');
             bubbles.forEach(b => b.classList.remove('popped'));
+            document.getElementById('game1-victory').classList.remove('show');
             playPopSound();
         }
 
@@ -629,7 +732,6 @@
                         this.life = 100;
                         this.decay = 0.1;
                     }
-
                     if (!this.color) this.color = 'hsl(' + hue + ', 100%, 50%)';
                 }
                 
@@ -846,8 +948,7 @@
         function initGame4() {
             document.getElementById('game4-ui').classList.remove('hidden');
             document.getElementById('puzzle-wrapper').classList.add('hidden');
-            document.getElementById('victory-message').classList.remove('show');
-            document.getElementById('upload-image').value = ''; // Reset input
+            document.getElementById('upload-image').value = ''; 
         }
 
         function handleImageUpload(event) {
@@ -871,12 +972,10 @@
                 startPuzzle(img);
             }
             img.onerror = function() {
-                // 如果找不到 default.jpg，嘗試使用網路佔位圖，避免使用者無圖可玩
                 if (confirm("找不到 'default.jpg'！\n請確認您有將一張圖片命名為 default.jpg 並放在同資料夾。\n\n是否使用網路風景圖代替？")) {
                     const fallbackImg = new Image();
-                    fallbackImg.crossOrigin = "Anonymous"; // 允許跨域
+                    fallbackImg.crossOrigin = "Anonymous"; 
                     fallbackImg.onload = function() { startPuzzle(fallbackImg); }
-                    // 使用picsum隨機風景圖
                     fallbackImg.src = 'https://picsum.photos/600/600?grayscale'; 
                 }
             }
@@ -891,14 +990,12 @@
             const container = document.getElementById('puzzle-container');
             container.innerHTML = '';
             
-            // 計算容器大小 (保持圖片比例，但最大不超過螢幕)
             const maxWidth = Math.min(window.innerWidth * 0.9, 500);
             const maxHeight = Math.min(window.innerHeight * 0.6, 500);
             
             let w = img.width;
             let h = img.height;
             
-            // 縮放邏輯
             if (w > maxWidth) {
                 const ratio = maxWidth / w;
                 w = maxWidth;
@@ -913,40 +1010,31 @@
             container.style.width = w + 'px';
             container.style.height = h + 'px';
 
-            // 建立 9 個拼圖塊
             puzzlePieces = [];
-            // 3x3 網格
-            // background-size 為 300% 300%
-            // position 分別為 0%, 50%, 100%
             const positions = ['0% 0%', '50% 0%', '100% 0%', 
                                '0% 50%', '50% 50%', '100% 50%', 
                                '0% 100%', '50% 100%', '100% 100%'];
             
-            // 產生隨機順序的 0-8 陣列
             let indices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-            // 確保打亂 (簡單洗牌算法)
             for (let i = indices.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [indices[i], indices[j]] = [indices[j], indices[i]];
             }
 
-            // 如果運氣好隨機後等於原圖，再交換一次確保有亂
             let isSolved = true;
             for(let i=0; i<9; i++) if(indices[i] !== i) isSolved = false;
             if(isSolved) [indices[0], indices[1]] = [indices[1], indices[0]];
 
-            // 建立 DOM
             for(let i=0; i<9; i++) {
-                const pieceIndex = indices[i]; // 這格放哪張圖
+                const pieceIndex = indices[i]; 
                 const div = document.createElement('div');
                 div.className = 'puzzle-piece';
                 div.style.backgroundImage = `url(${img.src})`;
                 div.style.backgroundSize = '300% 300%';
                 div.style.backgroundPosition = positions[pieceIndex];
                 
-                // 儲存這塊拼圖正確應該在哪個位置 (0-8)
                 div.dataset.correctIndex = pieceIndex;
-                div.dataset.currentIndex = i; // 目前在網格的哪個位置
+                div.dataset.currentIndex = i; 
 
                 div.onclick = () => handlePieceClick(div);
                 container.appendChild(div);
@@ -956,36 +1044,29 @@
         }
 
         function handlePieceClick(piece) {
-            if (piece.classList.contains('correct')) return; // 贏了之後鎖定
+            if (piece.classList.contains('correct')) return; 
 
-            playPopSound(); // 點擊音效
+            playPopSound(); 
 
             if (puzzleSelected === null) {
-                // 選取第一片
                 puzzleSelected = piece;
                 piece.classList.add('selected');
             } else if (puzzleSelected === piece) {
-                // 取消選取
                 piece.classList.remove('selected');
                 puzzleSelected = null;
             } else {
-                // 交換
                 swapPieces(puzzleSelected, piece);
                 puzzleSelected.classList.remove('selected');
                 puzzleSelected = null;
-                
-                // 檢查勝利
                 checkPuzzleWin();
             }
         }
 
         function swapPieces(p1, p2) {
-            // 交換背景位置 (視覺)
             const tempBg = p1.style.backgroundPosition;
             p1.style.backgroundPosition = p2.style.backgroundPosition;
             p2.style.backgroundPosition = tempBg;
 
-            // 交換正確索引資料 (邏輯)
             const tempCorrect = p1.dataset.correctIndex;
             p1.dataset.correctIndex = p2.dataset.correctIndex;
             p2.dataset.correctIndex = tempCorrect;
@@ -994,9 +1075,6 @@
         function checkPuzzleWin() {
             let win = true;
             const pieces = document.querySelectorAll('.puzzle-piece');
-            
-            // 這裡我們的邏輯是：所有的 div 順序沒變，變的是它們的背景圖
-            // 所以我們要檢查每個 div 的 dataset.correctIndex 是否等於它的 DOM 順序
             pieces.forEach((p, index) => {
                 if (parseInt(p.dataset.correctIndex) !== index) {
                     win = false;
@@ -1005,11 +1083,8 @@
 
             if (win) {
                 playWinSound();
-                // 勝利特效
                 document.getElementById('victory-message').classList.add('show');
                 pieces.forEach(p => p.classList.add('correct'));
-                
-                // 簡單的慶祝粒子
                 const container = document.getElementById('puzzle-container');
                 const rect = container.getBoundingClientRect();
                 for(let i=0; i<50; i++) {
@@ -1040,7 +1115,7 @@
             const animate = () => {
                 vx *= 0.95;
                 vy *= 0.95;
-                vy += 0.2; // Gravity
+                vy += 0.2; 
                 
                 const currentLeft = parseFloat(el.style.left);
                 const currentTop = parseFloat(el.style.top);
@@ -1057,6 +1132,152 @@
                 }
             };
             requestAnimationFrame(animate);
+        }
+
+        // --- 遊戲 5: 刮刮樂 ---
+        let game5Won = false;
+
+        function initGame5() {
+            document.getElementById('victory-message').classList.remove('show');
+            game5Won = false;
+            
+            const container = document.getElementById('scratch-container');
+            const canvas = document.getElementById('scratch-canvas');
+            const bg = document.getElementById('scratch-bg');
+            
+            // 隨機選擇圖片 (1~5)
+            const randomImgId = Math.floor(Math.random() * 5) + 1;
+            const imgSrc = `reveal_images/${randomImgId}.jpg`;
+            
+            // 設定底圖
+            const img = new Image();
+            img.onload = function() {
+                // 圖片讀取成功
+                bg.style.backgroundImage = `url(${imgSrc})`;
+                setupCanvas();
+            };
+            img.onerror = function() {
+                // 圖片讀取失敗 (可能沒放資料夾)
+                if(confirm("讀取圖片失敗！\n請確認您有建立 'reveal_images' 資料夾，並放入 '1.jpg' ~ '5.jpg'。\n\n是否先用測試圖代替？")) {
+                    bg.style.backgroundImage = `url(https://picsum.photos/600/400?random=${Date.now()})`;
+                    setupCanvas();
+                }
+            };
+            img.src = imgSrc;
+            
+            function setupCanvas() {
+                const w = 500;
+                const h = 400;
+                
+                // RWD 調整
+                const maxWidth = Math.min(window.innerWidth * 0.9, 500);
+                const maxHeight = maxWidth * 0.8;
+                
+                container.style.width = maxWidth + 'px';
+                container.style.height = maxHeight + 'px';
+                canvas.width = maxWidth;
+                canvas.height = maxHeight;
+                
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
+                // 填滿灰色遮罩
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = '#999';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 加一點雜訊質感
+                for(let i=0; i<5000; i++){
+                    ctx.fillStyle = Math.random() > 0.5 ? '#aaa' : '#888';
+                    ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 2, 2);
+                }
+                
+                // 文字提示
+                ctx.fillStyle = '#333';
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText("SCRAPE ME!", canvas.width/2, canvas.height/2);
+                
+                // 設定刮除模式
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = 40;
+                
+                // 事件綁定
+                let isDrawing = false;
+                let lastCheckTime = 0;
+                
+                function getPos(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const clientX = e.clientX || e.touches[0].clientX;
+                    const clientY = e.clientY || e.touches[0].clientY;
+                    return {
+                        x: clientX - rect.left,
+                        y: clientY - rect.top
+                    };
+                }
+
+                function draw(e) {
+                    if(!isDrawing || game5Won) return;
+                    e.preventDefault();
+                    
+                    const pos = getPos(e);
+                    
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 20, 0, Math.PI*2);
+                    ctx.fill();
+                    
+                    // 每 200ms 檢查一次勝利條件，避免過度運算
+                    const now = Date.now();
+                    if(now - lastCheckTime > 200) {
+                        checkWin(ctx, canvas.width, canvas.height);
+                        lastCheckTime = now;
+                    }
+                }
+
+                canvas.onmousedown = (e) => { isDrawing = true; draw(e); };
+                canvas.onmousemove = draw;
+                canvas.onmouseup = () => isDrawing = false;
+                canvas.onmouseleave = () => isDrawing = false;
+                
+                canvas.ontouchstart = (e) => { isDrawing = true; draw(e); };
+                canvas.ontouchmove = draw;
+                canvas.ontouchend = () => isDrawing = false;
+            }
+        }
+
+        function checkWin(ctx, w, h) {
+            // 取得像素資料
+            // 注意：因為 canvas 上只有灰色遮罩，沒有跨域圖片，所以這裡不會報 CORS 錯誤
+            const imageData = ctx.getImageData(0, 0, w, h);
+            const data = imageData.data;
+            let transparentPixels = 0;
+            
+            // 只要檢查 alpha 通道 (每 4 個一組的第 4 個值)
+            // 為了效能，可以跳著檢查 (例如每 10 個像素檢查一個)
+            for(let i = 3; i < data.length; i += 40) {
+                if(data[i] < 128) { // 透明度小於一半視為已刮除
+                    transparentPixels++;
+                }
+            }
+            
+            const totalPixelsChecked = data.length / 40;
+            const percentage = (transparentPixels / totalPixelsChecked) * 100;
+            
+            if(percentage > 85) { // 刮除超過 85% 就算贏
+                game5Won = true;
+                playWinSound();
+                document.getElementById('victory-message').classList.add('show');
+                
+                // 自動清除剩餘的屑屑
+                ctx.clearRect(0, 0, w, h);
+                
+                const container = document.getElementById('scratch-container');
+                const rect = container.getBoundingClientRect();
+                for(let i=0; i<50; i++) {
+                    createConfetti(rect.left + rect.width/2, rect.top + rect.height/2);
+                }
+            }
         }
 
     </script>
