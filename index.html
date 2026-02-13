@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上班族舒壓中心 | Stress Relief Arcade</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --accent: #0f3460;
+            --text: #e94560;
+            --bubble-base: #4a90e2;
+            --bubble-popped: #2c3e50;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: white;
+            overflow: hidden; /* 防止捲動 */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        /* 通用 UI */
+        .hidden { display: none !important; }
+        
+        button.back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        button.back-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+        /* 主選單 */
+        #menu {
+            text-align: center;
+            width: 100%;
+            max-width: 900px;
+            animation: fadeIn 0.5s ease;
+            overflow-y: auto;
+            max-height: 90vh;
+            padding: 20px;
+        }
+        
+        h1 { margin-bottom: 40px; text-shadow: 0 0 10px rgba(233, 69, 96, 0.5); }
+        
+        .card-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .game-card {
+            background: var(--card-bg);
+            border: 2px solid var(--accent);
+            border-radius: 15px;
+            padding: 25px;
+            width: 180px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border-color: var(--text);
+        }
+
+        .icon { font-size: 40px; margin-bottom: 15px; }
+        .desc { font-size: 12px; color: #888; margin-top: 10px; }
+
+        /* 遊戲 1: 泡泡紙 */
+        #game1-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 10px;
+            width: 90%;
+            height: 80%;
+            overflow-y: auto;
+            padding: 20px;
+            touch-action: none;
+        }
+        
+        .bubble {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle at 30% 30%, #8ec5fc, var(--bubble-base));
+            border-radius: 50%;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3), inset -2px -2px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.05s;
+        }
+
+        .bubble:active { transform: scale(0.9); }
+        
+        .bubble.popped {
+            background: var(--bubble-popped);
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5);
+            transform: scale(0.95);
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        #game1-controls {
+            position: absolute;
+            bottom: 20px;
+        }
+
+        /* 遊戲 2: 粒子 */
+        #game2-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .instruction-overlay {
+            position: absolute;
+            bottom: 20px;
+            color: rgba(255,255,255,0.5);
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0 0 5px black;
+        }
+
+        /* 遊戲 3: 職場毀滅者 */
+        #game3-area {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewport="0 0 24 24" fill="red"><circle cx="12" cy="12" r="10"/></svg>') 12 12, auto;
+        }
+
+        .enemy {
+            position: absolute;
+            font-size: 40px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+        
+        .enemy:active { transform: scale(0.8); }
+
+        .score-board {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text);
+            z-index: 100;
+        }
+
+        .fever-bar-container {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            width: 200px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .fever-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff9966, #ff5e62);
+            transition: width 0.2s;
+        }
+
+        .fever-mode {
+            animation: shake 0.5s infinite;
+            box-shadow: inset 0 0 50px rgba(255,0,0,0.2);
+        }
+
+        .floating-text {
+            position: absolute;
+            color: #fff;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 0.8s forwards;
+        }
+
+        /* 遊戲 4: 拼圖 */
+        #game4 {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+        }
+
+        .upload-btn {
+            padding: 15px 30px;
+            background: var(--text);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: 0.2s;
+            margin-bottom: 20px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+        }
+        .upload-btn:hover { background: #ff6b81; transform: translateY(-2px); }
+        
+        #puzzle-container {
+            position: relative;
+            background: #222;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            /* 預設大小，會被 JS 覆蓋 */
+            width: 300px;
+            height: 300px; 
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            border: 2px solid #555;
+            transition: opacity 0.5s;
+        }
+
+        .puzzle-piece {
+            width: 100%;
+            height: 100%;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            box-sizing: border-box;
+            border: 1px solid rgba(0,0,0,0.3);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .puzzle-piece:hover {
+            z-index: 10;
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: 1px solid white;
+        }
+
+        .puzzle-piece.selected {
+            border: 2px solid var(--text);
+            box-shadow: 0 0 15px var(--text);
+            z-index: 20;
+            transform: scale(1.1);
+        }
+
+        .puzzle-piece.correct {
+            /* 勝利後的樣式 */
+            border: none;
+        }
+
+        #victory-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--text);
+            pointer-events: none;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+        }
+        
+        #victory-message.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* 動畫 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.5); opacity: 0; } }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        
+        .shake-screen { animation: shake 0.3s; }
+        
+        .reset-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .reset-btn:hover { background: #c0354c; }
+
+    </style>
+</head>
+<body>
+
+    <!-- 主選單 -->
+    <div id="menu">
+        <h1>上班族舒壓中心</h1>
+        <p style="margin-bottom: 30px; color: #aaa;">請選擇您的舒壓療法</p>
+        <div class="card-container">
+            <div class="game-card" onclick="startGame(1)">
+                <div class="icon">🫧</div>
+                <h3>無限泡泡紙</h3>
+                <div class="desc">升級版：支援滑動連環爆破，聲音清脆療癒！</div>
+            </div>
+            <div class="game-card" onclick="startGame(2)">
+                <div class="icon">✨</div>
+                <h3>粒子流光</h3>
+                <div class="desc">升級版：長按集氣，釋放超新星爆炸！</div>
+            </div>
+            <div class="game-card" onclick="startGame(3)">
+                <div class="icon">🔨</div>
+                <h3>職場毀滅者</h3>
+                <div class="desc">低沉有力的重擊聲，盡情破壞！</div>
+            </div>
+            <div class="game-card" onclick="startGame(4)">
+                <div class="icon">🧩</div>
+                <h3>回憶拼圖</h3>
+                <div class="desc">上傳任意圖片，打散重組，獲得滿滿成就感。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲 1: 泡泡紙 -->
+    <div id="game1" class="hidden" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <button class="back-btn" onclick="showMenu()">← 回主選單</button>
+        <div id="game1-container">
+            <!-- 泡泡會由 JS 生成 -->
+        </div>
+        <div id="game1-controls">
+            <button class="reset-btn" onclick="resetBubbles()">全部復原 (R)</button>
+        </div>
+    </div>
+
+    <!-- 遊戲 2: 粒子 -->
+    <div id="game2" class="hidden" style="width: 100%; height: 100%;">
+        <button class="back-btn" onclick="showMenu()">← 回主選單</button>
+        <canvas id="game2-canvas"></canvas>
+        <div class="instruction-overlay">移動滑鼠產生流光，<b>按住左鍵集氣</b>，放開引發爆炸</div>
+    </div>
+
+    <!-- 遊戲 3: 職場毀滅者 -->
+    <div id="game3" class="hidden" style="width: 100%; height: 100%;">
+        <button class="back-btn" onclick="showMenu()">← 回主選單</button>
+        <div class="score-board">
+            SCORE: <span id="score">0</span>
+        </div>
+        <div class="fever-bar-container">
+            <div id="fever-bar" class="fever-bar"></div>
+        </div>
+        <div id="game3-area"></div>
+    </div>
+
+    <!-- 遊戲 4: 拼圖 -->
+    <div id="game4" class="hidden">
+        <button class="back-btn" onclick="showMenu()">← 回主選單</button>
+        
+        <input type="file" id="upload-image" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+        
+        <div id="game4-ui" style="text-align: center;">
+            <button class="upload-btn" onclick="document.getElementById('upload-image').click()">
+                📷 上傳圖片開始遊戲
+            </button>
+            <p style="color: #888; font-size: 14px; margin-top: 10px;">支援任何比例圖片，自動切成 9 片</p>
+        </div>
+
+        <div id="puzzle-wrapper" class="hidden" style="display: flex; flex-direction: column; align-items: center;">
+            <div id="puzzle-container"></div>
+            <p style="margin-top: 20px; color: #aaa;">點擊兩片拼圖進行交換</p>
+            <button class="reset-btn" onclick="document.getElementById('upload-image').click()" style="margin-top: 10px; background-color: #444;">更換圖片</button>
+        </div>
+
+        <div id="victory-message">
+            <h2 style="color: #ffd700; font-size: 40px; margin: 0;">🎉 VICTORY! 🎉</h2>
+            <p style="color: white; font-size: 20px;">太厲害了！拼圖完成！</p>
+        </div>
+    </div>
+
+    <script>
+        // --- 音效系統 (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playPopSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(500 + Math.random() * 100, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.08); 
+            
+            gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playSmashSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle'; 
+            osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playSparkleSound(isBigExplosion = false) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+
+            if (isBigExplosion) {
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                osc.stop(audioCtx.currentTime + 0.5);
+            } else {
+                const freq = 600 + Math.random() * 300;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.8, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.02); 
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+                osc.stop(audioCtx.currentTime + 0.15);
+            }
+        }
+
+        // 拼圖勝利音效 (大三和弦琶音)
+        function playWinSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major: C5, E5, G5, C6
+            
+            notes.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                
+                gain.gain.setValueAtTime(0, now + i * 0.1);
+                gain.gain.linearRampToValueAtTime(0.3, now + i * 0.1 + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.6);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + i * 0.1);
+                osc.stop(now + i * 0.1 + 0.6);
+            });
+        }
+
+        // --- 導航系統 ---
+        let currentGame = null;
+        let game2LoopId = null;
+        let game3LoopId = null;
+        
+        let isMouseDown = false;
+        document.addEventListener('mousedown', () => isMouseDown = true);
+        document.addEventListener('mouseup', () => isMouseDown = false);
+
+        function showMenu() {
+            document.getElementById('menu').classList.remove('hidden');
+            document.getElementById('game1').classList.add('hidden');
+            document.getElementById('game2').classList.add('hidden');
+            document.getElementById('game3').classList.add('hidden');
+            document.getElementById('game4').classList.add('hidden');
+            
+            if (game2LoopId) cancelAnimationFrame(game2LoopId);
+            if (game3LoopId) clearInterval(game3LoopId);
+            
+            document.getElementById('game3-area').innerHTML = '';
+            document.body.classList.remove('fever-mode');
+        }
+
+        function startGame(id) {
+            document.getElementById('menu').classList.add('hidden');
+            
+            if (id === 1) {
+                document.getElementById('game1').classList.remove('hidden');
+                initGame1();
+            } else if (id === 2) {
+                document.getElementById('game2').classList.remove('hidden');
+                initGame2();
+            } else if (id === 3) {
+                document.getElementById('game3').classList.remove('hidden');
+                initGame3();
+            } else if (id === 4) {
+                document.getElementById('game4').classList.remove('hidden');
+                initGame4();
+            }
+        }
+
+        // --- 遊戲 1: 泡泡紙 ---
+        function initGame1() {
+            const container = document.getElementById('game1-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 120; i++) {
+                const b = document.createElement('div');
+                b.className = 'bubble';
+                
+                const popBubble = () => {
+                    if (!b.classList.contains('popped')) {
+                        b.classList.add('popped');
+                        playPopSound();
+                        if(navigator.vibrate) navigator.vibrate(15);
+                    }
+                };
+
+                b.addEventListener('mousedown', popBubble);
+                b.addEventListener('mouseenter', () => {
+                    if (isMouseDown) popBubble();
+                });
+
+                container.appendChild(b);
+            }
+        }
+
+        function resetBubbles() {
+            const bubbles = document.querySelectorAll('.bubble');
+            bubbles.forEach(b => b.classList.remove('popped'));
+            playPopSound();
+        }
+
+        // --- 遊戲 2: 粒子 ---
+        function initGame2() {
+            const canvas = document.getElementById('game2-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let hue = 0;
+            let isCharging = false;
+            let chargeStartTime = 0;
+            let chargeLevel = 0;
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
+            class Particle {
+                constructor(x, y, type = 'normal', speedMulti = 1) {
+                    this.x = x;
+                    this.y = y;
+                    this.type = type; 
+                    this.size = Math.random() * 5 + 1;
+                    
+                    if (type === 'explosion') {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = (Math.random() * 5 + 2) * speedMulti;
+                        this.speedX = Math.cos(angle) * speed;
+                        this.speedY = Math.sin(angle) * speed;
+                        this.size = Math.random() * 8 + 2;
+                        this.life = 100;
+                        this.decay = Math.random() * 0.5 + 0.5;
+                    } else if (type === 'implode') {
+                        this.speedX = 0;
+                        this.speedY = 0;
+                        this.targetX = x;
+                        this.targetY = y;
+                        this.size = Math.random() * 3 + 1;
+                        this.life = 30;
+                        this.decay = 0.5;
+                        this.color = `hsl(${hue}, 100%, 80%)`;
+                    } else {
+                        this.speedX = Math.random() * 3 - 1.5;
+                        this.speedY = Math.random() * 3 - 1.5;
+                        this.life = 100;
+                        this.decay = 0.1;
+                    }
+
+                    if (!this.color) this.color = 'hsl(' + hue + ', 100%, 50%)';
+                }
+                
+                update(mouseX, mouseY) {
+                    if (this.type === 'implode') {
+                        const dx = mouseX - this.x;
+                        const dy = mouseY - this.y;
+                        this.x += dx * 0.15;
+                        this.y += dy * 0.15;
+                        this.size -= 0.1;
+                    } else {
+                        this.x += this.speedX;
+                        this.y += this.speedY;
+                        if (this.type === 'explosion') {
+                            this.speedY += 0.05; 
+                            this.size -= this.decay * 0.3;
+                        } else {
+                            this.size -= this.decay;
+                        }
+                    }
+                }
+                
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, Math.max(0, this.size), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            const mouse = { x: undefined, y: undefined };
+            
+            canvas.addEventListener('mousemove', function(event){
+                mouse.x = event.x;
+                mouse.y = event.y;
+                if (!isCharging) {
+                    for(let i=0; i<2; i++){
+                        particles.push(new Particle(mouse.x, mouse.y));
+                    }
+                }
+            });
+
+            canvas.addEventListener('mousedown', function(event){
+                isCharging = true;
+                chargeStartTime = Date.now();
+                mouse.x = event.x;
+                mouse.y = event.y;
+            });
+
+            canvas.addEventListener('mouseup', function(event){
+                if (!isCharging) return;
+                isCharging = false;
+                
+                const chargeTime = Date.now() - chargeStartTime;
+                let power = 1;
+                let isBig = false;
+                if (chargeTime > 300) {
+                    power = Math.min(chargeTime / 300, 5);
+                    isBig = true;
+                }
+                const particleCount = isBig ? 50 * power : 20;
+                for(let i=0; i<particleCount; i++){
+                    particles.push(new Particle(mouse.x, mouse.y, 'explosion', isBig ? power * 0.8 : 1));
+                }
+                playSparkleSound(isBig);
+            });
+
+            canvas.addEventListener('mouseleave', () => { isCharging = false; });
+
+            function animate() {
+                ctx.fillStyle = isCharging ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                if (isCharging) {
+                    chargeLevel++;
+                    for(let i=0; i<5; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const dist = 50 + Math.random() * 50;
+                        const px = mouse.x + Math.cos(angle) * dist;
+                        const py = mouse.y + Math.sin(angle) * dist;
+                        particles.push(new Particle(px, py, 'implode'));
+                    }
+                    ctx.beginPath();
+                    ctx.arc(mouse.x, mouse.y, 10 + Math.sin(chargeLevel * 0.2) * 5, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${hue}, 100%, 60%, 0.8)`;
+                    ctx.fill();
+                    if (chargeLevel > 20) {
+                         const shake = (Math.random() - 0.5) * (chargeLevel * 0.05);
+                         ctx.save();
+                         ctx.translate(shake, shake);
+                    }
+                } else {
+                    chargeLevel = 0;
+                }
+
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update(mouse.x, mouse.y);
+                    particles[i].draw();
+                    if (particles[i].size <= 0.2) {
+                        particles.splice(i, 1);
+                        i--;
+                    }
+                }
+                
+                if (isCharging && chargeLevel > 20) ctx.restore(); 
+
+                hue += 2;
+                game2LoopId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // --- 遊戲 3: 職場毀滅者 ---
+        function initGame3() {
+            const area = document.getElementById('game3-area');
+            const scoreEl = document.getElementById('score');
+            const feverBar = document.getElementById('fever-bar');
+            let score = 0;
+            let fever = 0;
+            let isFever = false;
+            
+            scoreEl.innerText = '0';
+            feverBar.style.width = '0%';
+            document.body.classList.remove('fever-mode');
+
+            const enemies = ['🐛', '📧', '❌', '📉', '🦠', '📝'];
+            const insults = ['BAM!', 'POW!', 'SHUT UP!', 'FIXED!', 'DELETED!'];
+
+            function spawnEnemy() {
+                if (document.getElementById('game3').classList.contains('hidden')) return;
+
+                const el = document.createElement('div');
+                el.classList.add('enemy');
+                el.innerText = enemies[Math.floor(Math.random() * enemies.length)];
+                
+                const size = 40 + Math.random() * 40;
+                el.style.fontSize = size + 'px';
+                el.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+                el.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+                
+                el.addEventListener('mousedown', (e) => {
+                    destroyEnemy(el, e.clientX, e.clientY);
+                });
+
+                area.appendChild(el);
+
+                setTimeout(() => {
+                    if(el.parentNode) el.remove();
+                }, 2000 + Math.random() * 2000);
+            }
+
+            function destroyEnemy(el, x, y) {
+                el.remove();
+                playSmashSound(); 
+                if(navigator.vibrate) navigator.vibrate(40);
+
+                const points = isFever ? 200 : 100;
+                score += points;
+                scoreEl.innerText = score;
+
+                if (!isFever) {
+                    fever += 10;
+                    if (fever >= 100) {
+                        activateFever();
+                    }
+                    feverBar.style.width = fever + '%';
+                }
+
+                createFloatingText(x, y, isFever ? "🔥FEVER!🔥" : insults[Math.floor(Math.random() * insults.length)]);
+                
+                document.body.classList.add('shake-screen');
+                setTimeout(() => document.body.classList.remove('shake-screen'), 300);
+            }
+
+            function createFloatingText(x, y, text) {
+                const f = document.createElement('div');
+                f.classList.add('floating-text');
+                f.innerText = text;
+                f.style.left = x + 'px';
+                f.style.top = y + 'px';
+                f.style.fontSize = isFever ? '30px' : '20px';
+                f.style.color = isFever ? '#ff0' : '#fff';
+                area.appendChild(f);
+                setTimeout(() => f.remove(), 800);
+            }
+
+            function activateFever() {
+                isFever = true;
+                document.body.classList.add('fever-mode');
+                
+                let feverDuration = 100;
+                const feverTimer = setInterval(() => {
+                    feverDuration -= 2;
+                    feverBar.style.width = feverDuration + '%';
+                    if (feverDuration <= 0) {
+                        clearInterval(feverTimer);
+                        isFever = false;
+                        fever = 0;
+                        document.body.classList.remove('fever-mode');
+                    }
+                }, 100);
+            }
+
+            game3LoopId = setInterval(() => {
+                const spawnCount = isFever ? 3 : 1;
+                for(let i=0; i<spawnCount; i++) spawnEnemy();
+            }, 800);
+        }
+
+        // --- 遊戲 4: 拼圖 ---
+        let puzzleSelected = null;
+        let puzzlePieces = [];
+
+        function initGame4() {
+            document.getElementById('game4-ui').classList.remove('hidden');
+            document.getElementById('puzzle-wrapper').classList.add('hidden');
+            document.getElementById('victory-message').classList.remove('show');
+            document.getElementById('upload-image').value = ''; // Reset input
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    startPuzzle(img);
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function startPuzzle(img) {
+            document.getElementById('game4-ui').classList.add('hidden');
+            document.getElementById('puzzle-wrapper').classList.remove('hidden');
+            document.getElementById('victory-message').classList.remove('show');
+            
+            const container = document.getElementById('puzzle-container');
+            container.innerHTML = '';
+            
+            // 計算容器大小 (保持圖片比例，但最大不超過螢幕)
+            const maxWidth = Math.min(window.innerWidth * 0.9, 500);
+            const maxHeight = Math.min(window.innerHeight * 0.6, 500);
+            
+            let w = img.width;
+            let h = img.height;
+            
+            // 縮放邏輯
+            if (w > maxWidth) {
+                const ratio = maxWidth / w;
+                w = maxWidth;
+                h = h * ratio;
+            }
+            if (h > maxHeight) {
+                const ratio = maxHeight / h;
+                h = maxHeight;
+                w = w * ratio;
+            }
+
+            container.style.width = w + 'px';
+            container.style.height = h + 'px';
+
+            // 建立 9 個拼圖塊
+            puzzlePieces = [];
+            // 3x3 網格
+            // background-size 為 300% 300%
+            // position 分別為 0%, 50%, 100%
+            const positions = ['0% 0%', '50% 0%', '100% 0%', 
+                               '0% 50%', '50% 50%', '100% 50%', 
+                               '0% 100%', '50% 100%', '100% 100%'];
+            
+            // 產生隨機順序的 0-8 陣列
+            let indices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+            // 確保打亂 (簡單洗牌算法)
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+
+            // 如果運氣好隨機後等於原圖，再交換一次確保有亂
+            let isSolved = true;
+            for(let i=0; i<9; i++) if(indices[i] !== i) isSolved = false;
+            if(isSolved) [indices[0], indices[1]] = [indices[1], indices[0]];
+
+            // 建立 DOM
+            for(let i=0; i<9; i++) {
+                const pieceIndex = indices[i]; // 這格放哪張圖
+                const div = document.createElement('div');
+                div.className = 'puzzle-piece';
+                div.style.backgroundImage = `url(${img.src})`;
+                div.style.backgroundSize = '300% 300%';
+                div.style.backgroundPosition = positions[pieceIndex];
+                
+                // 儲存這塊拼圖正確應該在哪個位置 (0-8)
+                div.dataset.correctIndex = pieceIndex;
+                div.dataset.currentIndex = i; // 目前在網格的哪個位置
+
+                div.onclick = () => handlePieceClick(div);
+                container.appendChild(div);
+                puzzlePieces.push(div);
+            }
+            puzzleSelected = null;
+        }
+
+        function handlePieceClick(piece) {
+            if (piece.classList.contains('correct')) return; // 贏了之後鎖定
+
+            playPopSound(); // 點擊音效
+
+            if (puzzleSelected === null) {
+                // 選取第一片
+                puzzleSelected = piece;
+                piece.classList.add('selected');
+            } else if (puzzleSelected === piece) {
+                // 取消選取
+                piece.classList.remove('selected');
+                puzzleSelected = null;
+            } else {
+                // 交換
+                swapPieces(puzzleSelected, piece);
+                puzzleSelected.classList.remove('selected');
+                puzzleSelected = null;
+                
+                // 檢查勝利
+                checkPuzzleWin();
+            }
+        }
+
+        function swapPieces(p1, p2) {
+            // 交換背景位置 (視覺)
+            const tempBg = p1.style.backgroundPosition;
+            p1.style.backgroundPosition = p2.style.backgroundPosition;
+            p2.style.backgroundPosition = tempBg;
+
+            // 交換正確索引資料 (邏輯)
+            const tempCorrect = p1.dataset.correctIndex;
+            p1.dataset.correctIndex = p2.dataset.correctIndex;
+            p2.dataset.correctIndex = tempCorrect;
+        }
+
+        function checkPuzzleWin() {
+            let win = true;
+            const pieces = document.querySelectorAll('.puzzle-piece');
+            
+            // 這裡我們的邏輯是：所有的 div 順序沒變，變的是它們的背景圖
+            // 所以我們要檢查每個 div 的 dataset.correctIndex 是否等於它的 DOM 順序
+            pieces.forEach((p, index) => {
+                if (parseInt(p.dataset.correctIndex) !== index) {
+                    win = false;
+                }
+            });
+
+            if (win) {
+                playWinSound();
+                // 勝利特效
+                document.getElementById('victory-message').classList.add('show');
+                pieces.forEach(p => p.classList.add('correct'));
+                
+                // 簡單的慶祝粒子
+                const container = document.getElementById('puzzle-container');
+                const rect = container.getBoundingClientRect();
+                for(let i=0; i<50; i++) {
+                    createConfetti(rect.left + rect.width/2, rect.top + rect.height/2);
+                }
+            }
+        }
+
+        function createConfetti(x, y) {
+            const colors = ['#e94560', '#ffd700', '#4a90e2', '#ffffff'];
+            const el = document.createElement('div');
+            el.style.position = 'fixed';
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.style.width = '10px';
+            el.style.height = '10px';
+            el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            el.style.pointerEvents = 'none';
+            el.style.zIndex = 2000;
+            document.body.appendChild(el);
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = Math.random() * 5 + 2;
+            let vx = Math.cos(angle) * velocity;
+            let vy = Math.sin(angle) * velocity;
+            let opacity = 1;
+
+            const animate = () => {
+                vx *= 0.95;
+                vy *= 0.95;
+                vy += 0.2; // Gravity
+                
+                const currentLeft = parseFloat(el.style.left);
+                const currentTop = parseFloat(el.style.top);
+                el.style.left = (currentLeft + vx) + 'px';
+                el.style.top = (currentTop + vy) + 'px';
+                
+                opacity -= 0.02;
+                el.style.opacity = opacity;
+
+                if (opacity > 0) {
+                    requestAnimationFrame(animate);
+                } else {
+                    el.remove();
+                }
+            };
+            requestAnimationFrame(animate);
+        }
+
+    </script>
+</body>
+</html>
