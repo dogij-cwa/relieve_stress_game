@@ -226,11 +226,14 @@
             font-size: 18px;
             font-weight: bold;
             transition: 0.2s;
-            margin-bottom: 20px;
+            margin: 10px;
             border: none;
             box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+            display: inline-block;
         }
         .upload-btn:hover { background: #ff6b81; transform: translateY(-2px); }
+        .upload-btn.secondary { background: #4a90e2; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4); }
+        .upload-btn.secondary:hover { background: #357abd; }
         
         #puzzle-container {
             position: relative;
@@ -396,13 +399,21 @@
             <button class="upload-btn" onclick="document.getElementById('upload-image').click()">
                 📷 上傳圖片開始遊戲
             </button>
+            <br>
+            <button class="upload-btn secondary" onclick="useDefaultImage()">
+                🖼️ 使用預設圖片
+            </button>
             <p style="color: #888; font-size: 14px; margin-top: 10px;">支援任何比例圖片，自動切成 9 片</p>
+            <p style="color: #555; font-size: 12px; margin-top: 5px;">(預設圖片需命名為 <b>default.jpg</b> 並與網頁放在同目錄)</p>
         </div>
 
         <div id="puzzle-wrapper" class="hidden" style="display: flex; flex-direction: column; align-items: center;">
             <div id="puzzle-container"></div>
             <p style="margin-top: 20px; color: #aaa;">點擊兩片拼圖進行交換</p>
-            <button class="reset-btn" onclick="document.getElementById('upload-image').click()" style="margin-top: 10px; background-color: #444;">更換圖片</button>
+            <div style="margin-top: 10px;">
+                <button class="reset-btn" onclick="document.getElementById('upload-image').click()" style="background-color: #444; margin-right: 10px;">更換圖片</button>
+                <button class="reset-btn" onclick="useDefaultImage()" style="background-color: #0f3460;">重玩預設圖</button>
+            </div>
         </div>
 
         <div id="victory-message">
@@ -852,6 +863,24 @@
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
+        }
+        
+        function useDefaultImage() {
+            const img = new Image();
+            img.onload = function() {
+                startPuzzle(img);
+            }
+            img.onerror = function() {
+                // 如果找不到 default.jpg，嘗試使用網路佔位圖，避免使用者無圖可玩
+                if (confirm("找不到 'default.jpg'！\n請確認您有將一張圖片命名為 default.jpg 並放在同資料夾。\n\n是否使用網路風景圖代替？")) {
+                    const fallbackImg = new Image();
+                    fallbackImg.crossOrigin = "Anonymous"; // 允許跨域
+                    fallbackImg.onload = function() { startPuzzle(fallbackImg); }
+                    // 使用picsum隨機風景圖
+                    fallbackImg.src = 'https://picsum.photos/600/600?grayscale'; 
+                }
+            }
+            img.src = 'default.jpg';
         }
 
         function startPuzzle(img) {
